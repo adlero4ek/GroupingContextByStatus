@@ -12,139 +12,108 @@ contexts:
     location: Группировка по статусу приложения
     extra-links: true
     components:
-      - Romashka.Systems.State.*.*
+      - Romashka.Systems.*.*.*
     source: >
       (
 
         $Datalake := $;
-        $GroupingName  := "State";
-        $GroupingTitle := "Статус использования";
-      
-        /* Имена и представления статусов приложений */  
-        $StatusTitles := $Datalake.dictionaries.applications_status.parameters;
-      
-        /* Компоненты с типом system, дополнительно ограничиваемые в атрибуте контекста components */  
+
+        $Grouping := {
+            "GroupingName": "State",  /* Имя группировки, добавляемое в описание идентификатора компонента DDD */
+            "GroupingTitle": "Статус использования",  /* Представление группировки, отображаемое пользователями на схеме контекста */
+            "FieldPath": "*.extension.state", /* Путь к значениям для  расчета группировок */
+            "FieldName": "state", /* Имя поля, которое будет создаваться для хранения значений группировок */
+            "Dictionary": $Datalake.dictionaries.applications_status.parameters};  /* Описание вариантов значений и представлений группируемого атрибута */
+
+        /* Предварительный отбор компонентов, которые дополнительно будут дополнительно ограничены движком из описания компонент контекста (атрибут контекста components) */
         $Components := components.$sift(function($v) { $v.extension.type="system" });
-      
+
+        /* Соответствие (кеш) текущего ID с его заменяемым значениями */
+        $ReplaceableIDs := $Components.$spread().(
+
+            /* Текущий ID */
+            $Id := $keys()[0];
+
+            /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
+            $ValueOfGroupingField := $eval($Grouping.FieldPath);
+
+            /* Новый ключ, который формируется путем замены внутри DDD определенного уровня описания на $Grouping.Name + добавляется новый уровень */
+            /* с вариантами используемых значений группировок, например */
+            /* Romashka.Systems.DocumentManagement.DocumentFlow трансформиурется в Romashka.Systems.State.trial.DocumentFlow, где */
+            /*    State - создаваемый уровень группировки (статусы использования) */
+            /*    trial - текущий статус использования */
+            $NewId := $replace($Id, $split($Id, ".")[2], $Grouping.GroupingName & "." & $ValueOfGroupingField);
+
+            {
+                "Id": $Id,
+                "NewId": $NewId
+            }
+        );
+
         /* Создание новой структуры компонентов, в которой изменяется ключ компонента с сохранением описания комопнента */
-        
         $Components := $Components.$spread().(
 
-            $System_id         := $keys()[0];
-            $StatusNameAsGroup := *.extension.state;
-      
-            /* Romashka.Systems.Technological.ESB_1CIntegrationCORP -> Romashka.Systems.State.concept.ESB_1CIntegrationCORP */ 
-            $System_id := $replace($System_id, $split($System_id, ".")[2], $GroupingName & "." & $StatusNameAsGroup);
-      
+            $Id := $keys()[0];
+            $NewComponentId := $ReplaceableIDs[Id=$Id].NewId;
+
+            /* Замена ID в связях компонентов */
             $Links := *.links.(
-            
-                  {
-                      "id": $replace(id, $split(id, ".")[2], $GroupingName & "." & ($lookup($Components, id).extension.state)),
-                      "direction": direction,
-                      "title": title
-                  }
-              );
-      
+            $ComponentIdFromLink := id;
             {
-                $string($System_id):
+                "id": $ReplaceableIDs[Id=$ComponentIdFromLink].NewId,
+                "direction": direction,
+                "title": title
+            }
+            );
+
+            /* Создание новой струкутры компонентов */
+            {
+            $string($NewComponentId):
                 {
-                    "title": *.title,
-                    "entity": *.entity,
-                    "extension":
-                         {
-                             "type": *.extension.type,
-                             "state": *.extension.state
-                         },
-                    "links": [$Links]
+                "title": *.title,
+                "entity": *.entity,
+                $Grouping.FieldName: $eval($Grouping.FieldPath),
+                "links": [$Links]
                 }
             }
         );
 
         /* Создание компонента верхнего уровня для группировки по статусу: Romashka.Systems.Technological -> Romashka.Systems.State */  
-        $Grouping := 
-          {
-              $split($keys($Components[0]), ".", 3)~> $join("."):
-              {
-                  "title": $GroupingTitle,
-                  "entity": "component"
-              }
-          };
-      
+        $Group := 
+            {
+                $split($keys($Components[0]), ".", 3)~> $join("."):
+                {
+                    "title": $Grouping.GroupingTitle,
+                    "entity": "component"
+                }
+            };
+
         /* Создание компонент текущего уровня с описанием статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
-        $GroupingValues := $distinct($Components.$spread().(
+        $GroupValues := $distinct($Components.$spread().(
           
-          $StatusName  := *.extension.state;
-          $StatusTitle := $StatusTitles[name=$StatusName].title;
-      
-          $Id := $append($split($keys()[0], ".", 2), $GroupingName & ".") ~> $join(".");
+          $Id := $keys()[0];
+          
+          /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
+          $ValueOfGroupingField := $eval("*." & $Grouping.FieldName);
+          
+          /* Представление значение, получаемое из справочника */
+          $TitlefGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
+          
+          $NewId := $append($split($Id, ".", 2), $Grouping.GroupingName & ".") ~> $join(".");
           
           {
-            $Id & $StatusName:
-              {
-                "title":  $type($StatusTitle)="string" ? $StatusTitle : $StatusName,
+            
+            $NewId & $ValueOfGroupingField:
+            {
+                "title":  $type($TitlefGroupingField)="string" ? $TitlefGroupingField : $ValueOfGroupingField,
                 "entity": "component"
-              }
+            }
           }
         ));
       
         $Components := $append($Components, components.$sift(function($v) { $v.extension.type!="system" }));
-        $Components := $append($Components, $Grouping);
-        $Components := $append($Components, $GroupingValues);
+        $Components := $append($Components, $Group);
+        $Components := $append($Components, $GroupValues);
       
         $ ~> | $ | { "components": $Components } |
-
       )
-      
-#  $Datalake := $;
-#
-#  /* Имя группировки, добавляемое в описание идентификатора компонента DDD */
-#  $GroupingName  := "State";
-#
-#  /* Представление группировки, отображаемое пользователями на схеме контекста */
-#  $GroupingTitle := "Статус использования";
-#
-#  /* Путь к знаениям для группивовки */
-#  $GroupingFieldPath := "*.extension.state";
-#  $GroupingFieldName := "state";
-#
-#  /* Описание вариантов значений и представлений группируемого атрибута */
-#  $GroupingDictionary := dictionaries.applications_status.parameters;
-#
-#  /* Предварительный отбор компонентов, которые дополнительно будут дополнительно ограничены движком из описания компонент контекста (атрибут контекста components) */
-#  $Components := components.$sift(function($v) { $v.extension.type="system" });
-#
-#  /* Создание новой структуры компонентов, в которой изменяется ключ компонента с сохранением описания комопнента */
-#  $Components := $Components.$spread().(
-#
-#  $System_id := $keys()[0];
-#  $ValueOfGroupingField := $eval($GroupingFieldPath);
-#
-#  /* Romashka.Systems.Technological.ESB_1CIntegrationCORP -> Romashka.Systems.State.concept.ESB_1CIntegrationCORP */
-#  $System_id := $replace($System_id, $split($System_id, ".")[2], $GroupingName & "." & $ValueOfGroupingField);
-#
-#  $Links := *.links.(
-#
-#  $ValueOfGroupingFieldInLink := $lookup($Components, id);
-#  $A := $replace($GroupingFieldPath,"*","");
-#  $ValueOfGroupingFieldInLink := $eval("$ValueOfGroupingFieldInLink" & $A);
-#
-#  {
-#    "id": $replace(id, $split(id, ".")[2], $GroupingName & "." & $ValueOfGroupingFieldInLink),
-#    "direction": direction,
-#    "title": title
-#  }
-#  );
-#
-#  {
-#    $string($System_id):
-#      {
-#        "title": *.title,
-#        "entity": *.entity,
-#        "extension":
-#          {
-#            $GroupingFieldName: $ValueOfGroupingField
-#          },
-#        "links": [$Links]
-#      }
-#  }
-#  );
