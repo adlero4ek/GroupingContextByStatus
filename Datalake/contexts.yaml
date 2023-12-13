@@ -1,0 +1,97 @@
+contexts:
+
+  dochub_base:
+    title: Схема по-умолчанию
+    location: Схема по-умолчанию
+    extra-links: true
+    components:
+      - Romashka.Systems.*.*
+
+  dochub:
+    title: Группировка по статусу приложения
+    location: Группировка по статусу приложения
+    extra-links: true
+    components:
+      - Romashka.Systems.State.*.*
+    source: >
+      (
+
+        $Datalake := $;
+        $GroupingName  := "State";
+        $GroupingTitle := "Статус использования";
+      
+        /* Имена и представления статусов приложений */  
+        $StatusTitles := $Datalake.dictionaries.applications_status.parameters;
+      
+        /* Компоненты с типом system, дополнительно ограничиваемые в атрибуте контекста components */  
+        $Components := components.$sift(function($v) { $v.extension.type="system" });
+      
+        /* Создание новой структуры компонентов, в которой изменяется ключ компонента с сохранением описания комопнента */
+        
+        $Components := $Components.$spread().(
+
+            $System_id         := $keys()[0];
+            $StatusNameAsGroup := *.extension.state;
+      
+            /* Romashka.Systems.Technological.ESB_1CIntegrationCORP -> Romashka.Systems.State.concept.ESB_1CIntegrationCORP */ 
+            $System_id := $replace($System_id, $split($System_id, ".")[2], $GroupingName & "." & $StatusNameAsGroup);
+      
+            $Links := *.links.(
+            
+                  {
+                      "id": $replace(id, $split(id, ".")[2], $GroupingName & "." & ($lookup($Components, id).extension.state)),
+                      "direction": direction,
+                      "title": title
+                  }
+              );
+      
+            {
+                $string($System_id):
+                {
+                    "title": *.title,
+                    "entity": *.entity,
+                    "extension":
+                         {
+                             "type": *.extension.type,
+                             "state": *.extension.state
+                         },
+                    "links": [$Links]
+                }
+            }
+        );
+
+        /* Создание компонента верхнего уровня для группировки по статусу: Romashka.Systems.Technological -> Romashka.Systems.State */  
+        $Grouping := 
+          {
+              $split($keys($Components[0]), ".", 3)~> $join("."):
+              {
+                  "title": $GroupingTitle,
+                  "entity": "component"
+              }
+          };
+      
+        /* Создание компонент текущего уровня с описанием статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
+        $GroupingValues := $distinct($Components.$spread().(
+          
+          $StatusName  := *.extension.state;
+          $StatusTitle := $StatusTitles[name=$StatusName].title;
+      
+          $Id := $append($split($keys()[0], ".", 2), $GroupingName & ".") ~> $join(".");
+          
+          {
+            $Id & $StatusName:
+              {
+                "title":  $type($StatusTitle)="string" ? $StatusTitle : $StatusName,
+                "entity": "component"
+              }
+          }
+        ));
+      
+        $Components := $append($Components, components.$sift(function($v) { $v.extension.type!="system" }));
+        $Components := $append($Components, $Grouping);
+        $Components := $append($Components, $GroupingValues);
+      
+        $ ~> | $ | { "components": $Components } |
+
+      )
+      
