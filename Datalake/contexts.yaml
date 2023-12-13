@@ -58,37 +58,37 @@ contexts:
 
             /* Замена ID в связях компонентов */
             $Links := *.links.(
-            $ComponentIdFromLink := id;
-            {
-                "id": $ReplaceableIDs[Id=$ComponentIdFromLink].NewId,
-                "direction": direction,
-                "title": title
-            }
+              $ComponentIdFromLink := id;
+              {
+                  "id": $ReplaceableIDs[Id=$ComponentIdFromLink].NewId,
+                  "direction": direction,
+                  "title": title
+              }
             );
 
             /* Создание новой струкутры компонентов */
             {
-            $string($NewComponentId):
-                {
-                "title": *.title,
-                "entity": *.entity,
-                $Grouping.FieldName: $eval($Grouping.FieldPath),
-                "links": [$Links]
-                }
+              $string($NewComponentId):
+              {
+                  "title": *.title,
+                  "entity": *.entity,
+                  $Grouping.FieldName: $eval($Grouping.FieldPath),
+                  "links": [$Links]
+              }
             }
         );
 
-        /* Создание компонента верхнего уровня для группировки по статусу: Romashka.Systems.Technological -> Romashka.Systems.State */  
+        /* Создание компонента верхнего уровня для группировки, например, по статусу: Romashka.Systems.Technological -> Romashka.Systems.State */  
         $Group := 
+        {
+            $split($keys($Components[0]), ".", 3)~> $join("."):
             {
-                $split($keys($Components[0]), ".", 3)~> $join("."):
-                {
-                    "title": $Grouping.GroupingTitle,
-                    "entity": "component"
-                }
-            };
+                "title": $Grouping.GroupingTitle,
+                "entity": "component"
+            }
+        };
 
-        /* Создание компонент текущего уровня с описанием статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
+        /* Создание компонент текущего уровня с описанием, например, статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
         $GroupValues := $distinct($Components.$spread().(
           
           $Id := $keys()[0];
@@ -97,18 +97,20 @@ contexts:
           $ValueOfGroupingField := $eval("*." & $Grouping.FieldName);
           
           /* Представление значение, получаемое из справочника */
-          $TitlefGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
-          
+          $TitleGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
+      
+          /* ID создаваемого компонента */
           $NewId := $append($split($Id, ".", 2), $Grouping.GroupingName & ".") ~> $join(".");
-          
+      
+          /* Создание "виртеальных/технических" компонент в рамках конкретного контекста */
           {
-            
             $NewId & $ValueOfGroupingField:
             {
-                "title":  $type($TitlefGroupingField)="string" ? $TitlefGroupingField : $ValueOfGroupingField,
+                "title":  $type($TitleGroupingField)="string" ? $TitleGroupingField : $ValueOfGroupingField,
                 "entity": "component"
             }
           }
+      
         ));
       
         $Components := $append($Components, components.$sift(function($v) { $v.extension.type!="system" }));
