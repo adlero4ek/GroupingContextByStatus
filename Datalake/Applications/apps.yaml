@@ -7,6 +7,7 @@ components:
       "Cистема управления документами и современная ECM-система (Enterprise Content Management — управление корпоративным контентом) с широким набором функциональных возможностей для
        регулировки деловых процессов и совместной работы сотрудников. Программа позволяет автоматизировать типовые процессы работы с документами, организовать электронный
        документооборот, обеспечить контроль исполнения задач, регламентировать управленческую деятельность"
+    critical_level: administrative
     extension:
       type: system
       state: trial
@@ -27,6 +28,7 @@ components:
     title: Битрикс24
     entity: component
     description: Битрикс24
+    critical_level: administrative
     extension:
       type: system
       state: archive
@@ -44,6 +46,7 @@ components:
     title: 1С:Управление холдингом 8
     entity: component
     description: "Инструмент эффективной автоматизации работы управляющих компаний и финансовых служб бизнес-единиц холдингов"
+    critical_level: business_critical
     extension:
       type: system
       state: archive
@@ -63,6 +66,7 @@ components:
     description: "Инновационное и эффективное решение от компании «1С» для создания комплексной информационной системы управления любым предприятием. Этот продукт позволяет
      автоматизировать основные бизнес-процессы, контролировать ключевые показатели деятельности предприятия, организовать взаимодействие служб и подразделений, 
      координировать деятельность производственных подразделений, оценивать эффективность деятельности предприятия, отдельных подразделений и персонала"
+    critical_level: business_critical
     extension:
       type: system
       state: trial
@@ -71,11 +75,22 @@ components:
       basic_solution: "1С:ERP, редакция 2.5"
       basic_solution_state: Развивается поставщиком
       basic_solution_link: https://solutions.1c.ru/catalog/1cerp
+    links:
+      - id: Romashka.Systems.FinancialManagement.SAP
+        direction: -->
+        title: 40
+      - id: Romashka.Systems.Technological.ESB_1CIntegrationCORP
+        direction: -->
+        title: 41
+      - id: Romashka.Systems.Technological.SPPR
+        direction: -->
+        title: 42
 
   Romashka.Systems.FinancialManagement.SAP:
     title: SAP
     entity: component
     description: SAP
+    critical_level: business_critical
     extension:
       type: system
       state: production
@@ -90,6 +105,7 @@ components:
     entity: component
     description:
       "Корпоративная шина данных (ESB), которая применяется для обмена данными между различными системами в виде канонической модели данных"
+    critical_level: mission_critical
     extension:
       type: system
       state: concept
@@ -106,6 +122,7 @@ components:
       "Система проектирования прикладных решений (СППР) предназначена для проектирования прикладных решений (конфигураций) на платформе «1С:Предприятие» и 
        ведения технической документации проекта. СППР может быть использована как в качестве инструмента для проектирования новых информационных систем,
        разрабатываемых в среде «1С:Предприятия 8», так и для описания и документирования существующих систем, разработанных ранее без использования СППР."
+    critical_level: mission_critical
     extension:
       type: system
       state: trial

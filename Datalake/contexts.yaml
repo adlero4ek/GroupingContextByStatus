@@ -16,106 +16,50 @@ contexts:
     source: >
       (
 
-        $Datalake := $;
-
-        $Grouping := {
+          $Grouping := {
             "GroupingName": "State",  /* Имя группировки, добавляемое в описание идентификатора компонента DDD */
             "GroupingTitle": "Статус использования",  /* Представление группировки, отображаемое пользователями на схеме контекста */
             "FieldPath": "*.extension.state", /* Путь к значениям для  расчета группировок */
-            "FieldName": "state", /* Имя поля, которое будет создаваться для хранения значений группировок */
-            "Dictionary": $Datalake.dictionaries.applications_status.parameters};  /* Описание вариантов значений и представлений группируемого атрибута */
-
-        /* Предварительный отбор компонентов, которые дополнительно будут дополнительно ограничены движком из описания компонент контекста (атрибут контекста components) */
-        $Components := components.$sift(function($v) { $v.extension.type="system" });
-
-        /* Соответствие (кеш) текущего ID с его заменяемым значениями */
-        $ReplaceableIDs := $Components.$spread().(
-
-            /* Текущий ID */
-            $Id := $keys()[0];
-
-            /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
-            $ValueOfGroupingField := $eval($Grouping.FieldPath);
-
-            /* Новый ключ, который формируется путем замены внутри DDD определенного уровня описания на $Grouping.Name + добавляется новый уровень */
-            /* с вариантами используемых значений группировок, например */
-            /* Romashka.Systems.DocumentManagement.DocumentFlow трансформиурется в Romashka.Systems.State.trial.DocumentFlow, где */
-            /*    State - создаваемый уровень группировки (статусы использования) */
-            /*    trial - текущий статус использования */
-            $NewId := $replace($Id, $split($Id, ".")[2], $Grouping.GroupingName & "." & $ValueOfGroupingField);
-
-            {
-                "Id": $Id,
-                "NewId": $NewId
-            }
-        );
-
-        /* Создание новой структуры компонентов, в которой изменяется ключ компонента с сохранением описания комопнента */
-        $Components := $Components.$spread().(
-
-            $Id := $keys()[0];
-            $NewComponentId := $ReplaceableIDs[Id=$Id].NewId;
-
-            /* Замена ID в связях компонентов */
-            $Links := *.links.(
-              $ComponentIdFromLink := id;
-              {
-                  "id": $ReplaceableIDs[Id=$ComponentIdFromLink].NewId,
-                  "direction": direction,
-                  "title": title
-              }
-            );
-
-            /* Создание новой струкутры компонентов */
-            {
-              $string($NewComponentId):
-              {
-                  "title": *.title,
-                  "entity": *.entity,
-                  $Grouping.FieldName: $eval($Grouping.FieldPath),
-                  "links": [$Links]
-              }
-            }
-        );
-
-        /* Создание компонента верхнего уровня для группировки, например, по статусу: Romashka.Systems.Technological -> Romashka.Systems.State */  
-        $Group := 
-        {
-            $split($keys($Components[0]), ".", 3)~> $join("."):
-            {
-                "title": $Grouping.GroupingTitle,
-                "entity": "component"
-            }
-        };
-
-        /* Создание компонент текущего уровня с описанием, например, статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
-        $GroupValues := $distinct($Components.$spread().(
-          
-          $Id := $keys()[0];
-          
-          /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
-          $ValueOfGroupingField := $eval("*." & $Grouping.FieldName);
-          
-          /* Представление значение, получаемое из справочника */
-          $TitleGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
+            "Dictionary": $.dictionaries.applications_status.parameters};  /* Описание вариантов значений и представлений группируемого атрибута */
       
-          /* ID создаваемого компонента */
-          $NewId := $append($split($Id, ".", 2), $Grouping.GroupingName & ".") ~> $join(".");
+          $Components := $eval($.functions.get_transformed_components_description, {"Grouping": $Grouping, "Datalake": $});
       
-          /* Создание "виртеальных/технических" компонент в рамках конкретного контекста */
-          {
-            $NewId & $ValueOfGroupingField:
-            {
-                "title":  $type($TitleGroupingField)="string" ? $TitleGroupingField : $ValueOfGroupingField,
-                "entity": "component"
-            }
-          }
+          /* http://docs.jsonata.org/other-operators */
+          /* ... ~> | ... | ... | (Transform) */
+          /* The object transform operator is used to modify a copy of an object structure using a pattern/action syntax to target specific
+          /* modifications while keeping the rest of the structure unchanged */ 
+  
+          /* Дополнительный пример использования - https://dochub.info/entities/docs/blank?dh-doc-id=dochub.contexts */
+          /* раздел 5. Источник данных для контекста */
       
-        ));
+          $ ~> | $ | { "components": $Components } |
+      )
+
+  dochub_critical_level:
+    title: Группировка по critical_level
+    location: Группировка по critical_level
+    extra-links: true
+    components:
+      - Romashka.Systems.*.*.*
+    source: >
+      (
+
+          $Grouping := {
+            "GroupingName": "CriticalLevel",  /* Имя группировки, добавляемое в описание идентификатора компонента DDD */
+            "GroupingTitle": "Уровень критичности",  /* Представление группировки, отображаемое пользователями на схеме контекста */
+            "FieldPath": "*.critical_level", /* Путь к значениям для  расчета группировок */
+            "Dictionary": $.dictionaries.critical_level.parameters};  /* Описание вариантов значений и представлений группируемого атрибута */
       
-        $Components := $append($Components, components.$sift(function($v) { $v.extension.type!="system" }));
-        $Components := $append($Components, $Group);
-        $Components := $append($Components, $GroupValues);
+          $Components := $eval($.functions.get_transformed_components_description, {"Grouping": $Grouping, "Datalake": $});
       
-        $ ~> | $ | { "components": $Components } |
+          /* http://docs.jsonata.org/other-operators */
+          /* ... ~> | ... | ... | (Transform) */
+          /* The object transform operator is used to modify a copy of an object structure using a pattern/action syntax to target specific
+          /* modifications while keeping the rest of the structure unchanged */ 
+  
+          /* Дополнительный пример использования - https://dochub.info/entities/docs/blank?dh-doc-id=dochub.contexts */
+          /* раздел 5. Источник данных для контекста */
+
+          $ ~> | $ | { "components": $Components } |  
+      
       )

@@ -1,15 +1,13 @@
 functions:
 
-  # Получение общего рейтинга системы
-  # $eval($.functions.get_application_total_rating, {'AppId': AppId, 'Datalake': Datalake});
-  get_application_total_rating: >
+  get_transformed_components_description: >
     (
         $Grouping := $.Grouping;
         $Datalake := $.Datalake;
-    
-        /* Предварительный отбор компонентов, которые дополнительно будут дополнительно ограничены движком из описания компонент контекста (атрибут контекста components) */
-        $Components := components.$sift(function($v) { $v.extension.type="system" });
         
+        /* Предварительный отбор компонентов, которые дополнительно будут дополнительно ограничены движком из описания компонент контекста (атрибут контекста components) */
+        $Components := $Datalake.components.$sift(function($v) { $v.extension.type="system" });
+
         /* Соответствие (кеш) текущего ID с его заменяемым значениями */
         $ReplaceableIDs := $Components.$spread().(
         
@@ -54,7 +52,7 @@ functions:
              {
                  "title": *.title,
                  "entity": *.entity,
-                 $Grouping.FieldName: $eval($Grouping.FieldPath),
+                 "technicalfield": $eval($Grouping.FieldPath),
                  "links": [$Links]
              }
            }
@@ -73,40 +71,31 @@ functions:
         /* Создание компонент текущего уровня с описанием, например, статусов на основании созданных компонент: Romashka.Systems.State.[ИмяСтатуса] */
         $GroupValues := $distinct($Components.$spread().(
         
-         $Id := $keys()[0];
+            $Id := $keys()[0];
         
-         /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
-         $ValueOfGroupingField := $eval("*." & $Grouping.FieldName);
-        
-         /* Представление значение, получаемое из справочника */
-         $TitleGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
-        
-         /* ID создаваемого компонента */
-         $NewId := $append($split($Id, ".", 2), $Grouping.GroupingName & ".") ~> $join(".");
-        
-         /* Создание "виртеальных/технических" компонент в рамках конкретного контекста */
-         {
-           $NewId & $ValueOfGroupingField:
+           /* Значение, получаемое из атрибута группировки и используемое для описания нового ID */
+           $ValueOfGroupingField := *.technicalfield;
+          
+           /* Представление значение, получаемое из справочника */
+           $TitleGroupingField := $Grouping.Dictionary[name=$ValueOfGroupingField].title;
+          
+           /* ID создаваемого компонента */
+           $NewId := $append($split($Id, ".", 2), $Grouping.GroupingName & ".") ~> $join(".");
+          
+           /* Создание "виртеальных/технических" компонент в рамках конкретного контекста */
            {
-               "title":  $type($TitleGroupingField)="string" ? $TitleGroupingField : $ValueOfGroupingField,
-               "entity": "component"
+             $NewId & $ValueOfGroupingField:
+             {
+                 "title":  $type($TitleGroupingField)="string" ? $TitleGroupingField : $ValueOfGroupingField,
+                 "entity": "component"
+             }
            }
-         }
         
         ));
-        
-        $Components := $append($Components, components.$sift(function($v) { $v.extension.type!="system" }));
+    
+        /* Сборка общего контекста */
+        $Components := $append($Components, $Datalake.components.$sift(function($v) { $v.extension.type!="system" }));
         $Components := $append($Components, $Group);
         $Components := $append($Components, $GroupValues);
-    
-        /* http://docs.jsonata.org/other-operators */
-        /* ... ~> | ... | ... | (Transform) */
-        /* The object transform operator is used to modify a copy of an object structure using a pattern/action syntax to target specific
-        /* modifications while keeping the rest of the structure unchanged */ 
-        
-        /* Дополнительный пример использования - https://dochub.info/entities/docs/blank?dh-doc-id=dochub.contexts */
-        /* раздел 5. Источник данных для контекста */
-        
-        $ ~> | $ | { "components": $Components } |  
     
     )

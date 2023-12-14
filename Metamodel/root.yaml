@@ -1,2 +1,4 @@
 imports:
   - Dictionaries/applications_status.yaml
+  - Dictionaries/critical_level.yaml
+  - functions.yaml
