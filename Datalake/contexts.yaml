@@ -1,15 +1,13 @@
 contexts:
 
-  dochub_base:
+  DefaultView:
     title: Схема по-умолчанию
-    location: Схема по-умолчанию
     extra-links: true
     components:
       - Romashka.Systems.*.*
 
-  dochub:
+  GroupingByStatus:
     title: Группировка по статусу приложения
-    location: Группировка по статусу приложения
     extra-links: true
     components:
       - Romashka.Systems.*.*.*
@@ -35,9 +33,8 @@ contexts:
           $ ~> | $ | { "components": $Components } |
       )
 
-  dochub_critical_level:
+  GroupingByStatusCriticalLevel:
     title: Группировка по critical_level
-    location: Группировка по critical_level
     extra-links: true
     components:
       - Romashka.Systems.*.*.*

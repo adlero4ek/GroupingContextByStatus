@@ -1,0 +1,3 @@
+imports:
+  - applications_status.yaml
+  - critical_level.yaml
