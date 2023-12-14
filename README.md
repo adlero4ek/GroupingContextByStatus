@@ -33,6 +33,9 @@
 ```
 ### Примеры
 
+#### Список систем и сервисов
+![ListOfInformationSystems.png](Imgs%2FListOfInformationSystems.png)
+
 #### Стандартное представление
 ![Default.svg](Imgs%2FDefault.svg)
 
