@@ -44,5 +44,8 @@
 
 #### Группировка по уровню критичности
 ![GroupingByStatusCriticalLevel.svg](Imgs%2FGroupingByStatusCriticalLevel.svg)
+
+#### Отображение списка выбор и цветовая подсветка в стандартной карточке компонента
+![ChoosingAaOptionInContext.png](Imgs%2FChoosingAaOptionInContext.png)
 ## Авторские права
 - Автор примера: https://t.me/SultanovStanislav
