@@ -34,7 +34,7 @@ contexts:
       )
 
   GroupingByStatusCriticalLevel:
-    title: Группировка по critical_level
+    title: Группировка по уровню критичности
     extra-links: true
     components:
       - Romashka.Systems.*.*.*
