@@ -10,6 +10,7 @@ contexts:
     title: Группировка по статусу приложения
     extra-links: true
     components:
+      - Romashka.Systems.*.*    # Для отображения в списке выбора контекста в карточке компонента
       - Romashka.Systems.*.*.*
     source: >
       (
@@ -37,6 +38,7 @@ contexts:
     title: Группировка по уровню критичности
     extra-links: true
     components:
+      - Romashka.Systems.*.*    # Для отображения в списке выбора контекста в карточке компонента
       - Romashka.Systems.*.*.*
     source: >
       (

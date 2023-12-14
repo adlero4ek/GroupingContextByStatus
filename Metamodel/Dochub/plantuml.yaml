@@ -50,7 +50,14 @@ entities:
                   $not($isAreaBegin) and $component ? (
                       /* Открываем секцию компонента */
                       $entity := $component.entity ? $component.entity : "component";
-                      $color := $domain = $focusId ? "#FFBBCC" : "";
+        
+                      /* +++ДОБАВЛЕНИЕ+++ */
+                      $color := ($type($component.id)="string" ? ($focusId = $component.id) : ($domain = $focusId)) ? "#FFBBCC" : "";
+                      /* +++ОРИГИНАЛ+++ */
+                      /* $color := $domain = $focusId ? "#FFBBCC" : "";*/
+                      /* ---ОРИГИНАЛ---*/
+                      /* ---ДОБАВЛЕНИЕ--- */
+        
                       $result := "$Entity(\"" 
                           & $entity 
                           & "\", \""
